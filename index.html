@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spotify-like YouTube Music Player</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #121212;
+      color: white;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    header {
+      font-size: 2rem;
+      margin-bottom: 20px;
+      font-weight: bold;
+      color: #1db954;
+    }
+    #searchForm {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+      max-width: 600px;
+    }
+    #searchInput {
+      flex-grow: 1;
+      padding: 12px;
+      font-size: 1.2rem;
+      border-radius: 4px 0 0 4px;
+      border: none;
+      outline: none;
+    }
+    #searchButton {
+      padding: 12px 20px;
+      font-size: 1.2rem;
+      border: none;
+      background-color: #1db954;
+      color: white;
+      cursor: pointer;
+      border-radius: 0 4px 4px 0;
+      transition: background-color 0.3s ease;
+    }
+    #searchButton:hover {
+      background-color: #17a44d;
+    }
+    #videoContainer {
+      margin-top: 30px;
+      width: 100%;
+      max-width: 800px;
+      aspect-ratio: 16 / 9;
+      box-shadow: 0 0 20px #1db954;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    #noResults {
+      margin-top: 30px;
+      font-size: 1.2rem;
+      color: #bbb;
+    }
+  </style>
+</head>
+<body>
+  <header>Spotify-like YouTube Music Player</header>
+  <form id="searchForm" autocomplete="off">
+    <input id="searchInput" type="text" placeholder="Search for a song or artist..." required />
+    <button type="submit" id="searchButton">Search</button>
+  </form>
+  <div id="videoContainer"></div>
+  <div id="noResults"></div>
+
+  <script>
+    const apiKey = 'AIzaSyBrAjbjk-hvVeTSQFHiDlPWIfmox3YcLY8'; // <-- Replace this with your YouTube Data API v3 key
+
+    async function searchYouTube(query) {
+      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&type=video&videoEmbeddable=true&q=${encodeURIComponent(query)}&key=${apiKey}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('YouTube API request failed');
+      }
+      const data = await response.json();
+      return data.items;
+    }
+
+    document.getElementById('searchForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const query = document.getElementById('searchInput').value.trim();
+      if (!query) return;
+
+      document.getElementById('noResults').textContent = '';
+      document.getElementById('videoContainer').innerHTML = '';
+
+      try {
+        const results = await searchYouTube(query);
+        if (results.length === 0) {
+          document.getElementById('noResults').textContent = 'No videos found.';
+          return;
+        }
+        const videoId = results[0].id.videoId;
+        document.getElementById('videoContainer').innerHTML = `
+          <iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        `;
+      } catch (error) {
+        document.getElementById('noResults').textContent = 'Error fetching videos. Please try again later.';
+        console.error(error);
+      }
+    });
+  </script>
+</body>
+</html>
