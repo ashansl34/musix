@@ -21,12 +21,14 @@
       margin-bottom: 20px;
       font-weight: bold;
       color: #1db954;
+      text-align: center;
     }
     #searchForm {
       display: flex;
       justify-content: center;
       width: 100%;
       max-width: 600px;
+      margin-bottom: 20px;
     }
     #searchInput {
       flex-grow: 1;
@@ -49,7 +51,45 @@
     #searchButton:hover {
       background-color: #17a44d;
     }
-    #videoContainer {
+    #suggestions {
+      width: 100%;
+      max-width: 600px;
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 500px;      /* Limit height */
+      overflow-y: auto;       /* Scrollbar if content overflows */
+    }
+    .suggestion-item {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      background-color: #222;
+      padding: 8px;
+      border-radius: 6px;
+      transition: background-color 0.2s ease;
+    }
+    .suggestion-item:hover {
+      background-color: #1db954;
+      color: black;
+    }
+    .suggestion-item img {
+      width: 80px;
+      height: 45px;
+      border-radius: 4px;
+      margin-right: 12px;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    .suggestion-title {
+      font-size: 1rem;
+      font-weight: 600;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    #videoPlayer {
       margin-top: 30px;
       width: 100%;
       max-width: 800px;
@@ -57,6 +97,7 @@
       box-shadow: 0 0 20px #1db954;
       border-radius: 8px;
       overflow: hidden;
+      background-color: black;
     }
     iframe {
       width: 100%;
@@ -64,9 +105,10 @@
       border: none;
     }
     #noResults {
-      margin-top: 30px;
+      margin-top: 20px;
       font-size: 1.2rem;
       color: #bbb;
+      text-align: center;
     }
   </style>
 </head>
@@ -76,14 +118,15 @@
     <input id="searchInput" type="text" placeholder="Search for a song or artist..." required />
     <button type="submit" id="searchButton">Search</button>
   </form>
-  <div id="videoContainer"></div>
+  <div id="suggestions"></div>
   <div id="noResults"></div>
+  <div id="videoPlayer"></div>
 
   <script>
-    const apiKey = 'AIzaSyBrAjbjk-hvVeTSQFHiDlPWIfmox3YcLY8'; // <-- Replace this with your YouTube Data API v3 key
+    const apiKey = 'AIzaSyBrAjbjk-hvVeTSQFHiDlPWIfmox3YcLY8'; // <-- Replace with your YouTube Data API v3 key
 
     async function searchYouTube(query) {
-      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&type=video&videoEmbeddable=true&q=${encodeURIComponent(query)}&key=${apiKey}`;
+      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=20&type=video&videoEmbeddable=true&q=${encodeURIComponent(query)}&key=${apiKey}`;
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error('YouTube API request failed');
@@ -92,24 +135,59 @@
       return data.items;
     }
 
+    function clearResults() {
+      document.getElementById('suggestions').innerHTML = '';
+      document.getElementById('noResults').textContent = '';
+      document.getElementById('videoPlayer').innerHTML = '';
+    }
+
+    function showSuggestions(videos) {
+      const suggestionsDiv = document.getElementById('suggestions');
+      suggestionsDiv.innerHTML = '';
+      videos.forEach(video => {
+        const videoId = video.id.videoId;
+        const title = video.snippet.title;
+        const thumb = video.snippet.thumbnails.medium.url;
+
+        const div = document.createElement('div');
+        div.className = 'suggestion-item';
+        div.title = title;
+        div.innerHTML = `
+          <img src="${thumb}" alt="${title}" />
+          <div class="suggestion-title">${title}</div>
+        `;
+        div.onclick = () => playVideo(videoId);
+        suggestionsDiv.appendChild(div);
+      });
+    }
+
+    function playVideo(videoId) {
+      const playerDiv = document.getElementById('videoPlayer');
+      playerDiv.innerHTML = `
+        <iframe 
+          src="https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1" 
+          allow="autoplay; encrypted-media" 
+          allowfullscreen>
+        </iframe>`;
+      // Scroll to player smoothly
+      playerDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+
     document.getElementById('searchForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const query = document.getElementById('searchInput').value.trim();
       if (!query) return;
 
-      document.getElementById('noResults').textContent = '';
-      document.getElementById('videoContainer').innerHTML = '';
+      clearResults();
 
       try {
-        const results = await searchYouTube(query);
-        if (results.length === 0) {
+        const videos = await searchYouTube(query);
+        if (videos.length === 0) {
           document.getElementById('noResults').textContent = 'No videos found.';
           return;
         }
-        const videoId = results[0].id.videoId;
-        document.getElementById('videoContainer').innerHTML = `
-          <iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-        `;
+        showSuggestions(videos);
+        playVideo(videos[0].id.videoId); // Auto-play first video
       } catch (error) {
         document.getElementById('noResults').textContent = 'Error fetching videos. Please try again later.';
         console.error(error);
