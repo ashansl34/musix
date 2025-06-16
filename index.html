@@ -126,7 +126,7 @@
     const apiKey = 'AIzaSyBrAjbjk-hvVeTSQFHiDlPWIfmox3YcLY8'; // <-- Replace with your YouTube Data API v3 key
 
     async function searchYouTube(query) {
-      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=20&type=video&videoEmbeddable=true&q=${encodeURIComponent(query)}&key=${apiKey}`;
+      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=200&type=video&videoEmbeddable=true&q=${encodeURIComponent(query)}&key=${apiKey}`;
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error('YouTube API request failed');
